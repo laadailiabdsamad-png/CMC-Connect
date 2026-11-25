@@ -1,0 +1,14 @@
+import 'package:integration_test/integration_test.dart';
+
+import '../test/donnees_test.dart' as donnees;
+import '../test/parcours_test.dart' as parcours;
+import '../test/theme_test.dart' as theme;
+
+/// Les mêmes tests que dans test/, exécutés sur un vrai téléphone :
+/// flutter test integration_test/appareil_test.dart
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  donnees.main();
+  theme.main();
+  parcours.main();
+}
