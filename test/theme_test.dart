@@ -36,10 +36,20 @@ void main() {
             );
           }
         }
-        expect(
-          contraste(c.alerteTexte, c.alerteFond),
-          greaterThanOrEqualTo(4.5),
-        );
+        // Pastilles d'état et encadré d'erreur du formulaire.
+        final schema = theme.colorScheme;
+        for (final (encre, fond) in [
+          (c.alerteTexte, c.alerteFond),
+          (c.attenteTexte, c.attenteFond),
+          (schema.onErrorContainer, schema.errorContainer),
+          (schema.onPrimary, schema.primary),
+        ]) {
+          expect(
+            contraste(encre, fond),
+            greaterThanOrEqualTo(4.5),
+            reason: 'texte $encre sur $fond',
+          );
+        }
       });
     }
   }

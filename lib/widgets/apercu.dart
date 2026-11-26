@@ -6,6 +6,16 @@ import '../theme/cmc_theme.dart';
 import 'carte_seance.dart';
 import 'surfaces.dart';
 
+/// Séance montrée dans l'aperçu d'un compte qui n'a pas de cours à venir.
+final exempleApercu = Seance(
+  id: 'apercu',
+  module: 'Développement mobile',
+  formateur: 'M. Amrani',
+  debut: DateTime(2026, 1, 5, 10),
+  fin: DateTime(2026, 1, 5, 12),
+  salle: 'B12',
+);
+
 /// Montre l'apparence choisie sans toucher au thème de l'application.
 class ApercuApparence extends StatelessWidget {
   const ApercuApparence({

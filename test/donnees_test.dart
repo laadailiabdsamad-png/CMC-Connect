@@ -1,40 +1,79 @@
+import 'package:cmc_connect/donnees/donnees_demo.dart';
 import 'package:cmc_connect/donnees/planning_fictif.dart';
 import 'package:cmc_connect/donnees/planning_repository.dart';
 import 'package:cmc_connect/donnees/preferences_locales.dart';
 import 'package:cmc_connect/etat/session.dart';
 import 'package:cmc_connect/modeles/apparence.dart';
+import 'package:cmc_connect/modeles/compte.dart';
+import 'package:cmc_connect/modeles/planification.dart';
 import 'package:cmc_connect/modeles/seance.dart';
-import 'package:cmc_connect/modeles/stagiaire.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
-import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import 'outils.dart';
 
 void main() {
-  group('Données fictives', () {
-    test('deux profils, deux groupes différents', () async {
-      final profils = await PlanningFictif().profils();
-      expect(profils, hasLength(2));
-      expect(profils.map((p) => p.groupe).toSet(), hasLength(2));
+  setUp(preferencesVides);
+
+  group('Données de démonstration', () {
+    test('comptes : deux stagiaires de groupes différents, un formateur, '
+        'un chef', () {
+      final stagiaires = comptesDemo.whereType<Stagiaire>().toList();
+      expect(stagiaires, hasLength(2));
+      expect(stagiaires.map((s) => s.groupeId).toSet(), hasLength(2));
+      final amrani = comptesDemo.whereType<Formateur>().single;
+      expect(amrani.nom, 'M. Amrani');
+      expect(amrani.enseigne('dev-201', 'Développement mobile'), isTrue);
+      expect(amrani.enseigne('ge-102', 'Comptabilité générale'), isFalse);
+      final chef = comptesDemo.whereType<ChefPole>().single;
+      expect(chef.nom, 'Chef du pôle Digital');
+      final groupes = groupesDemo.where((g) => g.poleId == chef.poleId);
+      expect(groupes.map((g) => g.code), containsAll(['DEV 201', 'DEV 101']));
+      expect(groupes.any((g) => g.code == 'GE 102'), isFalse);
     });
 
-    test('il y a toujours une prochaine séance, un jour ouvré', () async {
-      final profils = await PlanningFictif().profils();
-      // Deux semaines, toutes les demi-heures, passage du week-end compris.
+    test('le départ est le premier jour ouvré où 10 h est à venir', () {
+      // Deux semaines, toutes les demi-heures, week-ends compris.
       for (var i = 0; i < 14 * 48; i++) {
         final instant = DateTime(2026, 12, 21, 0, 30 * i);
-        final source = PlanningFictif(horloge: () => instant);
-        for (final profil in profils) {
-          final seances = await source.seances(profil);
-          expect(seances.first.debut.isAfter(instant), isTrue);
-          expect(
-            seances.every((s) => s.debut.weekday <= DateTime.friday),
-            isTrue,
-          );
+        final ancrage = ancrageDemo(instant);
+        expect(ancrage.weekday, lessThanOrEqualTo(DateTime.friday));
+        expect(
+          DateTime(
+            ancrage.year,
+            ancrage.month,
+            ancrage.day,
+            10,
+          ).isAfter(instant),
+          isTrue,
+        );
+        final initial = planningInitial(ancrage);
+        expect(
+          initial.every((s) => s.courante.debut.weekday <= DateTime.friday),
+          isTrue,
+        );
+        // Aucun conflit dans le planning de départ.
+        final publiees = [
+          for (final s in initial)
+            if (s.publiee != null) s,
+        ];
+        for (final a in publiees) {
+          for (final b in publiees) {
+            if (a.id == b.id || !a.publiee!.chevauche(b.publiee!)) continue;
+            expect(a.publiee!.salle, isNot(b.publiee!.salle));
+            expect(a.publiee!.formateur, isNot(b.publiee!.formateur));
+            expect(a.publiee!.groupeId, isNot(b.publiee!.groupeId));
+          }
         }
-        final ines = (await source.seances(profils.first)).first;
-        expect((ines.ancienneSalle, ines.salle), ('B12', 'B08'));
-        expect((ines.debut.hour, ines.formateur), (10, 'M. Amrani'));
       }
+    });
+
+    test('Inès a d’abord sa séance de 10 h en B12, sans changement', () async {
+      final planning = PlanningFictif(horloge: horlogeTest);
+      final ines = comptesDemo.first as Stagiaire;
+      final premiere = (await planning.seances(ines)).first;
+      expect(premiere.debut, DateTime(2026, 11, 25, 10));
+      expect((premiere.salle, premiere.formateur), ('B12', 'M. Amrani'));
+      expect(premiere.salleModifiee, isFalse);
     });
   });
 
@@ -54,42 +93,50 @@ void main() {
       }
     });
 
-    test('chaque compte retrouve son réglage après redémarrage', () async {
-      SharedPreferencesAsyncPlatform.instance =
-          InMemorySharedPreferencesAsync.empty();
+    test('chaque compte, chef compris, retrouve son réglage', () async {
       Session nouvelle() => Session(
-        planning: PlanningFictif(),
+        planning: PlanningFictif(horloge: horlogeTest),
         preferences: PreferencesAppareil(),
+        horloge: horlogeTest,
       );
       const verreSombre = Apparence(
         style: StyleApp.liquidGlass,
         luminosite: Luminosite.sombre,
       );
       const simpleClair = Apparence(luminosite: Luminosite.clair);
+      const verreClair = Apparence(
+        style: StyleApp.liquidGlass,
+        luminosite: Luminosite.clair,
+      );
 
       final premiere = nouvelle();
       await premiere.demarrer();
       expect(premiere.actif, isNull);
-      await premiere.choisir(premiere.profils[0]);
+      final [ines, yassine, _, chef] = premiere.profils;
+      await premiere.choisir(ines);
       expect(await premiere.appliquer(verreSombre), isTrue);
-      await premiere.changerDeCompte();
-      await premiere.choisir(premiere.profils[1]);
+      await premiere.choisir(chef);
       expect(premiere.apparence, const Apparence());
+      expect(await premiere.appliquer(verreClair), isTrue);
+      await premiere.choisir(yassine);
       expect(await premiere.appliquer(simpleClair), isTrue);
 
       final seconde = nouvelle();
       await seconde.demarrer();
-      expect(seconde.actif?.id, seconde.profils[1].id);
+      expect(seconde.actif?.id, yassine.id);
       expect(seconde.apparence, simpleClair);
-      await seconde.changerDeCompte();
-      await seconde.choisir(seconde.profils[0]);
+      await seconde.choisir(ines);
       expect(seconde.apparence, verreSombre);
+      await seconde.choisir(chef);
+      expect(seconde.apparence, verreClair);
+      expect(seconde.seances, isEmpty);
     });
 
     test('un enregistrement refusé ne change pas le thème', () async {
       final session = Session(
-        planning: PlanningFictif(),
+        planning: PlanningFictif(horloge: horlogeTest),
         preferences: _PreferencesEnPanne(),
+        horloge: horlogeTest,
       );
       await session.demarrer();
       await session.choisir(session.profils.first);
@@ -103,8 +150,6 @@ void main() {
   });
 
   test('un planning illisible est signalé, sans planter', () async {
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.empty();
     final session = Session(
       planning: _PlanningEnPanne(),
       preferences: PreferencesAppareil(),
@@ -132,8 +177,31 @@ class _PreferencesEnPanne implements PreferencesLocales {
 
 class _PlanningEnPanne implements PlanningRepository {
   @override
-  Future<List<Stagiaire>> profils() => PlanningFictif().profils();
+  Future<List<Compte>> comptes() async => comptesDemo;
   @override
   Future<List<Seance>> seances(Stagiaire stagiaire) async =>
       throw Exception('panne');
+  @override
+  Future<List<Seance>> seancesFormateur(Formateur formateur) async =>
+      throw Exception('panne');
+  @override
+  Future<EspacePole> espacePole(ChefPole chef) async =>
+      throw Exception('panne');
+  @override
+  Future<List<SeancePlanifiee>> semaine(
+    ChefPole chef,
+    String groupeId,
+    DateTime lundi,
+  ) async => throw Exception('panne');
+  @override
+  Future<SeancePlanifiee> enregistrerBrouillon(
+    ChefPole chef,
+    DetailsSeance details, {
+    String? seanceId,
+  }) async => throw Exception('panne');
+  @override
+  Future<SeancePlanifiee> publier(ChefPole chef, String seanceId) async =>
+      throw Exception('panne');
+  @override
+  Future<void> reinitialiser() async => throw Exception('panne');
 }

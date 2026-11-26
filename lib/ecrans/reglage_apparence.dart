@@ -22,7 +22,7 @@ class _ReglageApparenceState extends State<ReglageApparence> {
 
   Future<void> _appliquer() async {
     final messager = ScaffoldMessenger.of(context);
-    final prenom = widget.session.actif!.prenom;
+    final nom = widget.session.actif!.nom;
     setState(() => _enCours = true);
     final enregistre = await widget.session.appliquer(_brouillon);
     if (!mounted) return;
@@ -34,7 +34,7 @@ class _ReglageApparenceState extends State<ReglageApparence> {
           behavior: SnackBarBehavior.floating,
           content: Text(
             enregistre
-                ? 'Apparence appliquée au compte $prenom.'
+                ? 'Apparence appliquée au compte $nom.'
                 : 'L’apparence n’a pas pu être enregistrée. Réessayez.',
           ),
         ),
@@ -66,7 +66,7 @@ class _ReglageApparenceState extends State<ReglageApparence> {
               const SizedBox(height: 8),
               ApercuApparence(
                 apparence: _brouillon,
-                seance: widget.session.prochaine,
+                seance: widget.session.prochaine ?? exempleApercu,
               ),
               const SizedBox(height: 20),
               Text('Style', style: texte.titleMedium),

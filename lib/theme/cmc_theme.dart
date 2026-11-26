@@ -16,6 +16,8 @@ class CmcCouleurs extends ThemeExtension<CmcCouleurs> {
     required this.texteDoux,
     required this.alerteFond,
     required this.alerteTexte,
+    required this.attenteFond,
+    required this.attenteTexte,
   });
 
   final bool verre;
@@ -28,6 +30,10 @@ class CmcCouleurs extends ThemeExtension<CmcCouleurs> {
   final Color texteDoux;
   final Color alerteFond;
   final Color alerteTexte;
+
+  /// Pastille « Modification en attente ».
+  final Color attenteFond;
+  final Color attenteTexte;
 
   @override
   CmcCouleurs copyWith() => this;
@@ -47,6 +53,8 @@ class CmcCouleurs extends ThemeExtension<CmcCouleurs> {
       texteDoux: c(texteDoux, other.texteDoux),
       alerteFond: c(alerteFond, other.alerteFond),
       alerteTexte: c(alerteTexte, other.alerteTexte),
+      attenteFond: c(attenteFond, other.attenteFond),
+      attenteTexte: c(attenteTexte, other.attenteTexte),
     );
   }
 }
@@ -87,6 +95,8 @@ ThemeData themeCmc(StyleApp style, Brightness luminosite) {
           texteDoux: const Color(0xFFDCEBEA),
           alerteFond: const Color(0xFFB4F7E1),
           alerteTexte: const Color(0xFF0F3A33),
+          attenteFond: const Color(0xFFFFD48A),
+          attenteTexte: const Color(0xFF3A2500),
         )
       : CmcCouleurs(
           verre: verre,
@@ -99,6 +109,8 @@ ThemeData themeCmc(StyleApp style, Brightness luminosite) {
           texteDoux: const Color(0xFF3E5853),
           alerteFond: const Color(0xFFA6EBCF),
           alerteTexte: const Color(0xFF0F3A33),
+          attenteFond: const Color(0xFFFFE1A8),
+          attenteTexte: const Color(0xFF4A2F00),
         );
 
   final schema =
@@ -139,6 +151,17 @@ ThemeData themeCmc(StyleApp style, Brightness luminosite) {
           titleMedium: texte.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         )
         .apply(bodyColor: encre, displayColor: encre),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: couleurs.surface,
+      labelStyle: TextStyle(color: couleurs.texteDoux),
+      floatingLabelStyle: TextStyle(color: encre),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: couleurs.texteDoux),
+      ),
+    ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(minimumSize: const Size(64, 52)),
     ),

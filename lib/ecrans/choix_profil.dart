@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../etat/session.dart';
+import '../modeles/compte.dart';
 import '../theme/cmc_theme.dart';
 import '../widgets/message_planning.dart';
 import '../widgets/surfaces.dart';
@@ -26,7 +27,7 @@ class ChoixProfil extends StatelessWidget {
               Text('CMC Connect', style: texte.headlineMedium),
               const SizedBox(height: 4),
               Text(
-                'Choisissez un profil stagiaire pour la démonstration. '
+                'Choisissez un compte de démonstration. '
                 'Les personnes et les groupes sont fictifs.',
                 style: texte.bodyLarge?.copyWith(color: doux),
               ),
@@ -46,14 +47,24 @@ class ChoixProfil extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(profil.prenom, style: texte.titleLarge),
-                                Text(
-                                  'Groupe ${profil.groupe}',
-                                  style: texte.titleMedium,
-                                ),
+                                Text(profil.nom, style: texte.titleLarge),
+                                Text(switch (profil) {
+                                  Stagiaire() => 'Groupe ${profil.groupe}',
+                                  ChefPole() => 'Chef de pôle',
+                                  Formateur() => 'Formateur',
+                                }, style: texte.titleMedium),
                                 const SizedBox(height: 4),
                                 Text(
-                                  profil.filiere,
+                                  switch (profil) {
+                                    Stagiaire() => profil.filiere,
+                                    Formateur() =>
+                                      profil.affectations
+                                          .map((a) => a.module)
+                                          .toSet()
+                                          .join(', '),
+                                    ChefPole() =>
+                                      'Planning des groupes du pôle ${profil.pole}',
+                                  },
                                   style: texte.bodyMedium?.copyWith(
                                     color: doux,
                                   ),
