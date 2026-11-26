@@ -125,11 +125,19 @@ class PlanningFictif implements PlanningRepository {
   Future<List<Compte>> comptes() async => comptesDemo;
 
   @override
-  Future<List<Seance>> seances(Stagiaire stagiaire) async {
+  Future<List<Seance>> seances(Stagiaire stagiaire) =>
+      _publiees((p) => p.groupeId == stagiaire.groupeId);
+
+  @override
+  Future<List<Seance>> seancesFormateur(Formateur formateur) =>
+      _publiees((p) => p.formateur == formateur.nom);
+
+  /// Seule la version publiée d'une séance est visible hors de l'espace chef.
+  Future<List<Seance>> _publiees(bool Function(DetailsSeance) garder) async {
     final toutes = await _exclusif(_charger);
     return [
       for (final s in toutes.values)
-        if (s.publiee case final p? when p.groupeId == stagiaire.groupeId)
+        if (s.publiee case final p? when garder(p))
           Seance(
             id: s.id,
             module: p.module,
@@ -138,6 +146,8 @@ class PlanningFictif implements PlanningRepository {
             fin: p.fin,
             salle: p.salle,
             ancienneSalle: s.sallePrecedente,
+            groupeId: p.groupeId,
+            groupe: _nomGroupe(p.groupeId),
           ),
     ]..sort((a, b) => a.debut.compareTo(b.debut));
   }

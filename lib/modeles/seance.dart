@@ -7,6 +7,8 @@ class Seance {
     required this.fin,
     required this.salle,
     this.ancienneSalle,
+    this.groupeId,
+    this.groupe,
   });
 
   final String id;
@@ -18,6 +20,11 @@ class Seance {
 
   /// Renseignée uniquement si la salle a changé après publication.
   final String? ancienneSalle;
+
+  final String? groupeId;
+
+  /// Code affiché du groupe, par exemple « DEV 201 ».
+  final String? groupe;
 
   bool get salleModifiee => ancienneSalle != null && ancienneSalle != salle;
 }

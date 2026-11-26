@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:ui' show GestureSettings;
 
 import 'package:cmc_connect/app.dart';
+import 'package:cmc_connect/donnees/fichiers.dart';
 import 'package:cmc_connect/donnees/planning_fictif.dart';
 import 'package:cmc_connect/donnees/preferences_locales.dart';
+import 'package:cmc_connect/donnees/travaux_locaux.dart';
 import 'package:cmc_connect/etat/session.dart';
+import 'package:cmc_connect/modeles/travaux.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -16,16 +20,55 @@ const nb = ' ';
 /// Inès a cours à 10 h, puis jeudi 26 et vendredi 27.
 DateTime horlogeTest() => DateTime(2026, 11, 25, 8);
 
-void preferencesVides() => SharedPreferencesAsyncPlatform.instance =
-    InMemorySharedPreferencesAsync.empty();
+/// Fichiers conservés par l'application pendant un test, y compris d'une
+/// « réouverture » à l'autre.
+var coffreTest = CoffreMemoire();
+
+/// Remplace le sélecteur et l'ouverture de fichiers du téléphone.
+class FichiersTest implements FichiersAppareil {
+  /// Prochains fichiers « choisis », dans l'ordre.
+  final aChoisir = <FichierChoisi>[];
+
+  /// Fichiers ouverts, dans l'ordre.
+  final ouverts = <PieceJointe>[];
+
+  @override
+  Future<FichierChoisi?> choisir() async =>
+      aChoisir.isEmpty ? null : aChoisir.removeAt(0);
+
+  @override
+  Future<String?> ouvrir(PieceJointe piece) async {
+    ouverts.add(piece);
+    return null;
+  }
+}
+
+var fichiersTest = FichiersTest();
+
+FichierChoisi fichierTexte(String nom, String contenu) =>
+    FichierChoisi(nom: nom, octets: utf8.encode(contenu));
+
+void preferencesVides() {
+  SharedPreferencesAsyncPlatform.instance =
+      InMemorySharedPreferencesAsync.empty();
+  coffreTest = CoffreMemoire();
+  fichiersTest = FichiersTest();
+}
 
 /// Équivaut à fermer puis rouvrir l'application : nouvelle session, nouveau
 /// repository, nouvel arbre de widgets, mêmes données enregistrées.
 Future<Session> ouvrirApp(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox());
+  final planning = PlanningFictif(horloge: horlogeTest);
   final session = Session(
-    planning: PlanningFictif(horloge: horlogeTest),
+    planning: planning,
     preferences: PreferencesAppareil(),
+    travaux: TravauxLocaux(
+      planning: planning,
+      horloge: horlogeTest,
+      coffre: coffreTest,
+    ),
+    fichiers: fichiersTest,
     horloge: horlogeTest,
   );
   await session.demarrer();
@@ -44,14 +87,22 @@ Future<void> amener(WidgetTester tester, Finder cible) async {
         axisDirectionToAxis(w.axisDirection) == Axis.vertical,
   );
   for (var i = 0; i < 60 && cible.evaluate().isEmpty; i++) {
-    final p = tester.state<ScrollableState>(listes.last).position;
-    if (i == 0 && p.pixels > p.minScrollExtent) {
-      p.jumpTo(p.minScrollExtent);
-    } else if (p.pixels >= p.maxScrollExtent) {
+    // Un champ de texte sur plusieurs lignes défile aussi : on l'ignore.
+    final page = listes.evaluate().where(
+      (e) => e.findAncestorWidgetOfExactType<EditableText>() == null,
+    );
+    final p = (page.last as StatefulElement).state as ScrollableState;
+    final position = p.position;
+    if (i == 0 && position.pixels > position.minScrollExtent) {
+      position.jumpTo(position.minScrollExtent);
+    } else if (position.pixels >= position.maxScrollExtent) {
       break;
     } else {
-      p.jumpTo(
-        (p.pixels + p.viewportDimension * 0.6).clamp(0, p.maxScrollExtent),
+      position.jumpTo(
+        (position.pixels + position.viewportDimension * 0.6).clamp(
+          0,
+          position.maxScrollExtent,
+        ),
       );
     }
     await tester.pump();

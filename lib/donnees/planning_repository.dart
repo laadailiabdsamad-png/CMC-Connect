@@ -29,6 +29,9 @@ abstract interface class PlanningRepository {
   /// Séances publiées du groupe du stagiaire.
   Future<List<Seance>> seances(Stagiaire stagiaire);
 
+  /// Séances publiées que le formateur anime, tous groupes confondus.
+  Future<List<Seance>> seancesFormateur(Formateur formateur);
+
   /// Groupes du pôle et listes de choix du formulaire.
   Future<EspacePole> espacePole(ChefPole chef);
 

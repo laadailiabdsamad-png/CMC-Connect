@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../etat/session.dart';
 import '../modeles/compte.dart';
 import '../theme/cmc_theme.dart';
+import '../donnees/donnees_demo.dart';
 import '../widgets/surfaces.dart';
 import 'reglage_apparence.dart';
 
@@ -21,7 +22,7 @@ class Profil extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Réinitialiser la démonstration ?'),
         content: const Text(
-          'Toutes les séances créées, les brouillons et les publications '
+          'Séances créées, brouillons, publications, TP, supports et rendus '
           'seront remplacés par le planning de départ, à partir du prochain '
           'jour de cours. Les réglages d’apparence sont conservés.',
         ),
@@ -39,7 +40,7 @@ class Profil extends StatelessWidget {
     );
     if (confirme != true) return;
     try {
-      await session.planning.reinitialiser();
+      await session.reinitialiserDemo();
       await apresReinitialisation?.call();
       messager.showSnackBar(
         const SnackBar(
@@ -71,6 +72,11 @@ class Profil extends StatelessWidget {
         'Pôle ${compte.pole}',
       ],
       ChefPole() => ['Chef de pôle', 'Pôle ${compte.pole}'],
+      Formateur() => [
+        'Formateur',
+        for (final a in compte.affectations)
+          '${a.module} · ${codeGroupe(a.groupeId)}',
+      ],
     };
     return ListView(
       padding: EdgeInsets.fromLTRB(16, marges.top + 16, 16, marges.bottom + 16),

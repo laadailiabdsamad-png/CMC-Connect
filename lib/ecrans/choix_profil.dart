@@ -51,11 +51,17 @@ class ChoixProfil extends StatelessWidget {
                                 Text(switch (profil) {
                                   Stagiaire() => 'Groupe ${profil.groupe}',
                                   ChefPole() => 'Chef de pôle',
+                                  Formateur() => 'Formateur',
                                 }, style: texte.titleMedium),
                                 const SizedBox(height: 4),
                                 Text(
                                   switch (profil) {
                                     Stagiaire() => profil.filiere,
+                                    Formateur() =>
+                                      profil.affectations
+                                          .map((a) => a.module)
+                                          .toSet()
+                                          .join(', '),
                                     ChefPole() =>
                                       'Planning des groupes du pôle ${profil.pole}',
                                   },

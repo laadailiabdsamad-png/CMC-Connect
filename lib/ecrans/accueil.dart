@@ -5,6 +5,7 @@ import '../theme/cmc_theme.dart';
 import '../theme/dates_fr.dart';
 import '../widgets/carte_seance.dart';
 import '../widgets/message_planning.dart';
+import 'stagiaire/modules.dart';
 
 class Accueil extends StatelessWidget {
   const Accueil({
@@ -62,6 +63,17 @@ class Accueil extends StatelessWidget {
               onPressed: ouvrirPlanning,
               icon: const Icon(Icons.calendar_month_outlined),
               label: const Text('Voir dans le planning'),
+            ),
+          ],
+          // Le prochain TP encore à rendre, comme sur la maquette du rapport.
+          if (session.mesTravaux.where((t) => t.rendu == null).firstOrNull
+              case final travail?) ...[
+            const SizedBox(height: 16),
+            CarteTravail(
+              key: ValueKey('accueil-tp-${travail.tp.id}'),
+              session: session,
+              travail: travail,
+              titre: 'TP À RENDRE',
             ),
           ],
         ],

@@ -1,24 +1,43 @@
 import 'package:flutter/foundation.dart';
 
+import '../donnees/fichiers.dart';
 import '../donnees/planning_repository.dart';
 import '../donnees/preferences_locales.dart';
+import '../donnees/travaux_locaux.dart';
+import '../donnees/travaux_repository.dart';
 import '../modeles/apparence.dart';
 import '../modeles/compte.dart';
 import '../modeles/seance.dart';
+import '../modeles/travaux.dart';
 
-/// État partagé par tous les écrans : compte actif, séances et apparence.
-/// Accueil et Planning lisent la même liste [seances], fournie par le même
+/// État partagé par tous les écrans : compte actif, séances, travaux et
+/// apparence. Stagiaire et formateur lisent leurs séances dans le même
 /// [planning] que l'espace chef.
 class Session extends ChangeNotifier {
   Session({
     required this.planning,
     required this.preferences,
+    TravauxRepository? travaux,
+    FichiersAppareil? fichiers,
     DateTime Function()? horloge,
-  }) : _horloge = horloge ?? DateTime.now;
+  }) : _horloge = horloge ?? DateTime.now,
+       travaux = travaux ?? TravauxLocaux(planning: planning, horloge: horloge),
+       fichiers = fichiers ?? FichiersSysteme();
 
   final PlanningRepository planning;
   final PreferencesLocales preferences;
+  final TravauxRepository travaux;
+  final FichiersAppareil fichiers;
   final DateTime Function() _horloge;
+
+  /// TP du groupe du stagiaire actif, avec son rendu.
+  List<TravailStagiaire> mesTravaux = const [];
+
+  /// Supports du groupe du stagiaire, ou publiés par le formateur actif.
+  List<Support> supports = const [];
+
+  /// TP publiés par le formateur actif, avec les rendus reçus.
+  List<TpSuivi> tpsSuivis = const [];
 
   List<Compte> profils = const [];
   Compte? actif;
@@ -30,6 +49,11 @@ class Session extends ChangeNotifier {
   int _demande = 0;
 
   DateTime get maintenant => _horloge();
+
+  Formateur? get formateur => switch (actif) {
+    final Formateur f => f,
+    _ => null,
+  };
 
   /// Le compte actif s'il s'agit d'un stagiaire.
   Stagiaire? get stagiaire => switch (actif) {
@@ -77,27 +101,25 @@ class Session extends ChangeNotifier {
     } catch (_) {
       // L'apparence par défaut reste utilisable.
     }
-    final resultat = compte is Stagiaire
-        ? await _lireSeances(compte)
-        : const <Seance>[];
+    final resultat = await _lire(compte);
     if (demande != _demande) return;
     actif = compte;
     apparence = choix;
-    seances = resultat ?? const [];
+    _appliquerLecture(resultat);
     erreur = resultat == null;
     notifyListeners();
   }
 
-  /// Relit le planning du stagiaire actif (retour dans l'application,
-  /// geste d'actualisation, réessai).
+  /// Relit séances et travaux du stagiaire ou du formateur actif (retour
+  /// dans l'application, geste d'actualisation, réessai).
   Future<void> rafraichir() async {
-    final compte = stagiaire;
-    if (compte == null) return;
+    final compte = actif;
+    if (compte == null || compte is ChefPole) return;
     final demande = ++_demande;
-    final resultat = await _lireSeances(compte);
+    final resultat = await _lire(compte);
     if (demande != _demande) return;
-    // En cas d'échec, le dernier planning connu reste affiché.
-    if (resultat != null) seances = resultat;
+    // En cas d'échec, les dernières données connues restent affichées.
+    if (resultat != null) _appliquerLecture(resultat);
     erreur = resultat == null && seances.isEmpty;
     notifyListeners();
   }
@@ -105,7 +127,7 @@ class Session extends ChangeNotifier {
   Future<void> changerDeCompte() async {
     ++_demande;
     actif = null;
-    seances = const [];
+    _appliquerLecture(null);
     apparence = const Apparence();
     erreur = false;
     notifyListeners();
@@ -132,12 +154,67 @@ class Session extends ChangeNotifier {
     return true;
   }
 
-  Future<List<Seance>?> _lireSeances(Stagiaire stagiaire) async {
+  void _appliquerLecture(_Lecture? l) {
+    seances = l?.seances ?? const [];
+    mesTravaux = l?.travaux ?? const [];
+    supports = l?.supports ?? const [];
+    tpsSuivis = l?.suivis ?? const [];
+  }
+
+  /// Null si les données n'ont pas pu être lues.
+  Future<_Lecture?> _lire(Compte compte) async {
     try {
-      return [...await planning.seances(stagiaire)]
-        ..sort((a, b) => a.debut.compareTo(b.debut));
+      switch (compte) {
+        case Stagiaire():
+          final (seances, travaux, supports) = await (
+            planning.seances(compte),
+            this.travaux.travauxStagiaire(compte),
+            this.travaux.supportsStagiaire(compte),
+          ).wait;
+          return _Lecture(
+            seances: _trier(seances),
+            travaux: travaux,
+            supports: supports,
+          );
+        case Formateur():
+          final (seances, suivis, supports) = await (
+            planning.seancesFormateur(compte),
+            travaux.tpsFormateur(compte),
+            travaux.supportsFormateur(compte),
+          ).wait;
+          return _Lecture(
+            seances: _trier(seances),
+            suivis: suivis,
+            supports: supports,
+          );
+        case ChefPole():
+          return const _Lecture();
+      }
     } catch (_) {
       return null;
     }
   }
+
+  static List<Seance> _trier(List<Seance> seances) =>
+      [...seances]..sort((a, b) => a.debut.compareTo(b.debut));
+
+  /// Remet séances et travaux de démonstration à zéro.
+  Future<void> reinitialiserDemo() async {
+    await planning.reinitialiser();
+    await travaux.reinitialiser();
+  }
+}
+
+class _Lecture {
+  const _Lecture({
+    this.seances = const [],
+    this.travaux = const [],
+    this.supports = const [],
+    this.suivis = const [],
+  });
+
+  final List<Seance> seances;
+  final List<TravailStagiaire> travaux;
+  final List<Support> supports;
+  final List<TpSuivi> suivis;
 }

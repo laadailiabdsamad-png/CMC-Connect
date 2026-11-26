@@ -14,6 +14,7 @@ class CarteSeance extends StatelessWidget {
     this.sousTitre,
     this.verre = false,
     this.onTap,
+    this.vueFormateur = false,
   });
 
   final Seance seance;
@@ -21,6 +22,9 @@ class CarteSeance extends StatelessWidget {
   final String? sousTitre;
   final bool verre;
   final VoidCallback? onTap;
+
+  /// Le formateur voit le groupe à la place de son propre nom.
+  final bool vueFormateur;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +57,9 @@ class CarteSeance extends StatelessWidget {
             Text(seance.module, style: texte.titleMedium),
             const SizedBox(height: 2),
             Text(
-              'Formateur : ${seance.formateur}',
+              vueFormateur
+                  ? 'Groupe ${seance.groupe}'
+                  : 'Formateur : ${seance.formateur}',
               style: texte.bodyMedium?.copyWith(color: doux),
             ),
             Text(

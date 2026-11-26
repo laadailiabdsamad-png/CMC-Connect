@@ -55,3 +55,25 @@ class Groupe {
   final String annee;
   final String poleId;
 }
+
+/// Un formateur enseigne un module à un groupe.
+class Affectation {
+  const Affectation({required this.groupeId, required this.module});
+
+  final String groupeId;
+  final String module;
+}
+
+class Formateur extends Compte {
+  const Formateur({
+    required super.id,
+    required super.nom,
+    required this.affectations,
+  });
+
+  /// Groupes et modules pour lesquels il peut publier supports et TP.
+  final List<Affectation> affectations;
+
+  bool enseigne(String groupeId, String module) =>
+      affectations.any((a) => a.groupeId == groupeId && a.module == module);
+}

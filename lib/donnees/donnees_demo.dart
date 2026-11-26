@@ -60,6 +60,15 @@ const comptesDemo = <Compte>[
     filiere: 'Gestion des Entreprises',
     pole: 'Gestion et Commerce',
   ),
+  Formateur(
+    id: 'formateur-amrani',
+    nom: 'M. Amrani',
+    affectations: [
+      Affectation(groupeId: 'dev-201', module: 'Développement mobile'),
+      Affectation(groupeId: 'dev-201', module: 'Programmation Dart'),
+      Affectation(groupeId: 'dev-101', module: 'Développement mobile'),
+    ],
+  ),
   ChefPole(
     id: 'chef-digital',
     nom: 'Chef du pôle Digital',
@@ -208,3 +217,11 @@ DateTime ajouterJoursOuvres(DateTime depart, int nombre) {
 }
 
 bool _estWeekend(DateTime jour) => jour.weekday > DateTime.friday;
+
+/// Code affiché d'un groupe, par exemple « DEV 201 ».
+String codeGroupe(String id) {
+  for (final g in groupesDemo) {
+    if (g.id == id) return g.code;
+  }
+  return id;
+}

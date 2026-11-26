@@ -77,3 +77,17 @@ String semaineFr(DateTime lundi) {
   final debut = lundi.month == samedi.month ? '${lundi.day}' : jourMois(lundi);
   return 'Semaine du $debut au ${jourMois(samedi)}';
 }
+
+/// « jeudi 26 novembre à 16 h 40 », au fil d'une phrase.
+String dateHeureFr(DateTime d) {
+  final jour = dateLongue(d);
+  return '${jour[0].toLowerCase()}${jour.substring(1)} à ${heureCourte(d)}';
+}
+
+/// « 1,2 Mo », « 350 ko ».
+String tailleFr(int octets) {
+  if (octets < 1024) return '$octets${_nbsp}o';
+  if (octets < 1024 * 1024) return '${(octets / 1024).round()}${_nbsp}ko';
+  final mo = (octets / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',');
+  return '$mo${_nbsp}Mo';
+}

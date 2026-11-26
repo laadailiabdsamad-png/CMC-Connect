@@ -15,10 +15,15 @@ void main() {
   setUp(preferencesVides);
 
   group('Données de démonstration', () {
-    test('trois comptes : deux stagiaires de groupes différents, un chef', () {
+    test('comptes : deux stagiaires de groupes différents, un formateur, '
+        'un chef', () {
       final stagiaires = comptesDemo.whereType<Stagiaire>().toList();
       expect(stagiaires, hasLength(2));
       expect(stagiaires.map((s) => s.groupeId).toSet(), hasLength(2));
+      final amrani = comptesDemo.whereType<Formateur>().single;
+      expect(amrani.nom, 'M. Amrani');
+      expect(amrani.enseigne('dev-201', 'Développement mobile'), isTrue);
+      expect(amrani.enseigne('ge-102', 'Comptabilité générale'), isFalse);
       final chef = comptesDemo.whereType<ChefPole>().single;
       expect(chef.nom, 'Chef du pôle Digital');
       final groupes = groupesDemo.where((g) => g.poleId == chef.poleId);
@@ -107,7 +112,7 @@ void main() {
       final premiere = nouvelle();
       await premiere.demarrer();
       expect(premiere.actif, isNull);
-      final [ines, yassine, chef] = premiere.profils;
+      final [ines, yassine, _, chef] = premiere.profils;
       await premiere.choisir(ines);
       expect(await premiere.appliquer(verreSombre), isTrue);
       await premiere.choisir(chef);
@@ -175,6 +180,9 @@ class _PlanningEnPanne implements PlanningRepository {
   Future<List<Compte>> comptes() async => comptesDemo;
   @override
   Future<List<Seance>> seances(Stagiaire stagiaire) async =>
+      throw Exception('panne');
+  @override
+  Future<List<Seance>> seancesFormateur(Formateur formateur) async =>
       throw Exception('panne');
   @override
   Future<EspacePole> espacePole(ChefPole chef) async =>

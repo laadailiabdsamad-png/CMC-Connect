@@ -6,6 +6,7 @@ import '../../modeles/planification.dart';
 import '../../theme/cmc_theme.dart';
 import '../../theme/dates_fr.dart';
 import '../../widgets/carte_seance_chef.dart';
+import '../../widgets/champ_choix.dart';
 import '../../widgets/surfaces.dart';
 
 /// Création ou modification d'une séance. Renvoie le message à afficher au
@@ -300,7 +301,7 @@ class _FicheSeanceState extends State<FicheSeance> {
                 erreur: _erreur(Champ.salle),
                 onChanged: (v) => _changer(() => _v.salle = v),
               ),
-              _ChampChoix(
+              ChampChoix(
                 label: 'Date',
                 valeur: switch (_v.date) {
                   final d? => dateLongue(d),
@@ -310,14 +311,14 @@ class _FicheSeanceState extends State<FicheSeance> {
                 erreur: _erreur(Champ.date),
                 onTap: _choisirDate,
               ),
-              _ChampChoix(
+              ChampChoix(
                 label: 'Heure de début',
                 valeur: heure(_v.debut),
                 icone: Icons.schedule,
                 erreur: _erreur(Champ.debut),
                 onTap: () => _choisirHeure(debut: true),
               ),
-              _ChampChoix(
+              ChampChoix(
                 label: 'Heure de fin',
                 valeur: heure(_v.fin),
                 icone: Icons.schedule,
@@ -460,43 +461,4 @@ class _Liste extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ChampChoix extends StatelessWidget {
-  const _ChampChoix({
-    required this.label,
-    required this.valeur,
-    required this.icone,
-    required this.erreur,
-    required this.onTap,
-  });
-
-  final String label;
-  final String? valeur;
-  final IconData icone;
-  final String? erreur;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 14),
-    child: Semantics(
-      button: true,
-      label: '$label : ${valeur ?? 'à choisir'}',
-      excludeSemantics: erreur == null,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: label,
-            errorText: erreur,
-            suffixIcon: Icon(icone),
-          ),
-          isEmpty: valeur == null,
-          child: Text(valeur ?? ''),
-        ),
-      ),
-    ),
-  );
 }

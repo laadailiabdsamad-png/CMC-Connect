@@ -7,11 +7,22 @@ import '../theme/cmc_theme.dart';
 import '../widgets/surfaces.dart';
 import 'accueil.dart';
 import 'chef/planning_chef.dart';
+import 'formateur/planning_formateur.dart';
+import 'formateur/suivi_tp.dart';
 import 'planning.dart';
 import 'profil.dart';
+import 'stagiaire/modules.dart';
 
-/// Les onglets du compte actif : Accueil, Planning et Profil pour un
-/// stagiaire ; Planning et Profil pour un chef de pôle.
+const _profil = NavigationDestination(
+  icon: Icon(Icons.person_outline),
+  selectedIcon: Icon(Icons.person),
+  label: 'Profil',
+);
+
+/// Les onglets du compte actif :
+/// - stagiaire : Accueil, Planning, Modules, Profil ;
+/// - formateur : Planning, TP, Profil ;
+/// - chef de pôle : Planning, Profil.
 class Coquille extends StatefulWidget {
   const Coquille({super.key, required this.session});
 
@@ -45,53 +56,79 @@ class _CoquilleState extends State<Coquille> {
 
   void _ouvrir(int onglet) => setState(() => _onglet = onglet);
 
+  (List<Widget>, List<NavigationDestination>) _onglets() {
+    final session = widget.session;
+    switch (session.actif!) {
+      case Stagiaire():
+        return (
+          [
+            Accueil(session: session, ouvrirPlanning: () => _ouvrir(1)),
+            Planning(session: session),
+            Modules(session: session),
+            Profil(session: session),
+          ],
+          const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Accueil',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
+              label: 'Planning',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.school_outlined),
+              selectedIcon: Icon(Icons.school),
+              label: 'Modules',
+            ),
+            _profil,
+          ],
+        );
+      case Formateur():
+        return (
+          [
+            PlanningFormateur(session: session),
+            MesTp(session: session),
+            Profil(session: session),
+          ],
+          const [
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
+              label: 'Planning',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.assignment_outlined),
+              selectedIcon: Icon(Icons.assignment),
+              label: 'TP',
+            ),
+            _profil,
+          ],
+        );
+      case ChefPole():
+        final espace = _espace!;
+        return (
+          [
+            PlanningChef(espace: espace),
+            Profil(session: session, apresReinitialisation: espace.recharger),
+          ],
+          const [
+            NavigationDestination(
+              icon: Icon(Icons.edit_calendar_outlined),
+              selectedIcon: Icon(Icons.edit_calendar),
+              label: 'Planning',
+            ),
+            _profil,
+          ],
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final espace = _espace;
-    final session = widget.session;
-    final (pages, destinations) = espace == null
-        ? (
-            [
-              Accueil(session: session, ouvrirPlanning: () => _ouvrir(1)),
-              Planning(session: session),
-              Profil(session: session),
-            ],
-            const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Accueil',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_month_outlined),
-                selectedIcon: Icon(Icons.calendar_month),
-                label: 'Planning',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profil',
-              ),
-            ],
-          )
-        : (
-            [
-              PlanningChef(espace: espace),
-              Profil(session: session, apresReinitialisation: espace.recharger),
-            ],
-            const [
-              NavigationDestination(
-                icon: Icon(Icons.edit_calendar_outlined),
-                selectedIcon: Icon(Icons.edit_calendar),
-                label: 'Planning',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profil',
-              ),
-            ],
-          );
+    final (pages, destinations) = _onglets();
     return FondCmc(
       child: Scaffold(
         backgroundColor: Colors.transparent,
