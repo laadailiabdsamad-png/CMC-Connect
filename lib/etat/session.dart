@@ -3,11 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../donnees/planning_repository.dart';
 import '../donnees/preferences_locales.dart';
 import '../modeles/apparence.dart';
+import '../modeles/compte.dart';
 import '../modeles/seance.dart';
-import '../modeles/stagiaire.dart';
 
 /// État partagé par tous les écrans : compte actif, séances et apparence.
-/// Accueil et Planning lisent la même liste [seances].
+/// Accueil et Planning lisent la même liste [seances], fournie par le même
+/// [planning] que l'espace chef.
 class Session extends ChangeNotifier {
   Session({
     required this.planning,
@@ -19,8 +20,8 @@ class Session extends ChangeNotifier {
   final PreferencesLocales preferences;
   final DateTime Function() _horloge;
 
-  List<Stagiaire> profils = const [];
-  Stagiaire? actif;
+  List<Compte> profils = const [];
+  Compte? actif;
   Apparence apparence = const Apparence();
   List<Seance> seances = const [];
   bool erreur = false;
@@ -29,6 +30,12 @@ class Session extends ChangeNotifier {
   int _demande = 0;
 
   DateTime get maintenant => _horloge();
+
+  /// Le compte actif s'il s'agit d'un stagiaire.
+  Stagiaire? get stagiaire => switch (actif) {
+    final Stagiaire s => s,
+    _ => null,
+  };
 
   Seance? get prochaine {
     final instant = maintenant;
@@ -43,7 +50,7 @@ class Session extends ChangeNotifier {
   Future<void> demarrer() async {
     erreur = false;
     try {
-      profils = await planning.profils();
+      profils = await planning.comptes();
     } catch (_) {
       erreur = true;
       notifyListeners();
@@ -61,30 +68,33 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> choisir(Stagiaire stagiaire) async {
+  Future<void> choisir(Compte compte) async {
     final demande = ++_demande;
     var choix = const Apparence();
     try {
-      await preferences.retenirCompte(stagiaire.id);
-      choix = await preferences.apparence(stagiaire.id);
+      await preferences.retenirCompte(compte.id);
+      choix = await preferences.apparence(compte.id);
     } catch (_) {
       // L'apparence par défaut reste utilisable.
     }
-    final resultat = await _lireSeances(stagiaire);
+    final resultat = compte is Stagiaire
+        ? await _lireSeances(compte)
+        : const <Seance>[];
     if (demande != _demande) return;
-    actif = stagiaire;
+    actif = compte;
     apparence = choix;
     seances = resultat ?? const [];
     erreur = resultat == null;
     notifyListeners();
   }
 
-  /// Relit le planning du compte actif (retour dans l'application, réessai).
+  /// Relit le planning du stagiaire actif (retour dans l'application,
+  /// geste d'actualisation, réessai).
   Future<void> rafraichir() async {
-    final stagiaire = actif;
-    if (stagiaire == null) return;
+    final compte = stagiaire;
+    if (compte == null) return;
     final demande = ++_demande;
-    final resultat = await _lireSeances(stagiaire);
+    final resultat = await _lireSeances(compte);
     if (demande != _demande) return;
     // En cas d'échec, le dernier planning connu reste affiché.
     if (resultat != null) seances = resultat;
@@ -108,14 +118,14 @@ class Session extends ChangeNotifier {
 
   /// Enregistre puis applique. Renvoie faux si l'enregistrement a échoué.
   Future<bool> appliquer(Apparence nouvelle) async {
-    final stagiaire = actif;
-    if (stagiaire == null) return false;
+    final compte = actif;
+    if (compte == null) return false;
     try {
-      await preferences.enregistrerApparence(stagiaire.id, nouvelle);
+      await preferences.enregistrerApparence(compte.id, nouvelle);
     } catch (_) {
       return false;
     }
-    if (actif?.id == stagiaire.id) {
+    if (actif?.id == compte.id) {
       apparence = nouvelle;
       notifyListeners();
     }
