@@ -22,47 +22,57 @@ class Planning extends StatelessWidget {
       final d = seance.debut;
       (parJour[DateTime(d.year, d.month, d.day)] ??= []).add(seance);
     }
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, marges.top + 16, 16, marges.bottom + 16),
-      children: [
-        Text('Planning', style: texte.headlineMedium),
-        const SizedBox(height: 4),
-        Text(
-          'Groupe ${session.actif!.groupe}',
-          style: texte.titleMedium?.copyWith(
-            color: context.cmc.texteDoux,
-            fontWeight: FontWeight.w500,
-          ),
+    return RefreshIndicator(
+      onRefresh: session.rafraichir,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          marges.top + 16,
+          16,
+          marges.bottom + 16,
         ),
-        if (parJour.isEmpty) ...[
-          const SizedBox(height: 20),
-          MessagePlanning(
-            erreur: session.erreur,
-            onReessayer: session.rafraichir,
-          ),
-        ],
-        for (final MapEntry(key: jour, value: seances) in parJour.entries) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 20, bottom: 10),
-            child: Semantics(
-              header: true,
-              child: Text(
-                jourFr(jour, session.maintenant),
-                style: texte.titleMedium,
-              ),
+        children: [
+          Text('Planning', style: texte.headlineMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Groupe ${session.stagiaire!.groupe}',
+            style: texte.titleMedium?.copyWith(
+              color: context.cmc.texteDoux,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          for (final seance in seances)
+          if (parJour.isEmpty) ...[
+            const SizedBox(height: 20),
+            MessagePlanning(
+              erreur: session.erreur,
+              onReessayer: session.rafraichir,
+            ),
+          ],
+          for (final MapEntry(key: jour, value: seances)
+              in parJour.entries) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: CarteSeance(
-                key: ValueKey('planning-${seance.id}'),
-                seance: seance,
-                titre: seance.id == prochaine?.id ? 'PROCHAINE SÉANCE' : null,
+              padding: const EdgeInsets.only(top: 20, bottom: 10),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  jourFr(jour, session.maintenant),
+                  style: texte.titleMedium,
+                ),
               ),
             ),
+            for (final seance in seances)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CarteSeance(
+                  key: ValueKey('planning-${seance.id}'),
+                  seance: seance,
+                  titre: seance.id == prochaine?.id ? 'PROCHAINE SÉANCE' : null,
+                ),
+              ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

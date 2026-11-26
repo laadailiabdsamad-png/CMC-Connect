@@ -40,3 +40,40 @@ String jourFr(DateTime d, DateTime maintenant) {
     _ => '${_jours[d.weekday - 1]} $date',
   };
 }
+
+const _nbsp = ' ';
+
+bool memeJour(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+DateTime minuit(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Lundi de la semaine de [d].
+DateTime lundiDe(DateTime d) =>
+    DateTime(d.year, d.month, d.day - d.weekday + 1);
+
+/// « 11 h » ou « 8 h 30 », pour les messages.
+String heureCourte(DateTime d) => d.minute == 0
+    ? '${d.hour}${_nbsp}h'
+    : '${d.hour}${_nbsp}h$_nbsp${d.minute.toString().padLeft(2, '0')}';
+
+/// « 10 h 00 – 12 h 00 ».
+String plageHoraire(DateTime debut, DateTime fin) =>
+    '${heureFr(debut)}$_nbsp– ${heureFr(fin)}';
+
+/// « 26 novembre ».
+String jourMois(DateTime d) => '${d.day}$_nbsp${_mois[d.month - 1]}';
+
+/// « Jeudi 26 novembre ».
+String dateLongue(DateTime d) => '${_jours[d.weekday - 1]} ${jourMois(d)}';
+
+/// « jeu. ».
+String jourAbrege(DateTime d) =>
+    '${_jours[d.weekday - 1].substring(0, 3).toLowerCase()}.';
+
+/// « Semaine du 23 au 28 novembre », sur six jours de cours.
+String semaineFr(DateTime lundi) {
+  final samedi = DateTime(lundi.year, lundi.month, lundi.day + 5);
+  final debut = lundi.month == samedi.month ? '${lundi.day}' : jourMois(lundi);
+  return 'Semaine du $debut au ${jourMois(samedi)}';
+}
